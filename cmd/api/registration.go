@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	database "i_was_here/cmd/database"
+	"i_was_here/cmd/database"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -56,4 +56,34 @@ func NameExists(name string) bool {
 	}
 
 	return count > 0
+}
+
+func UpdateRegistrationData(existingEmail, newName, newEmail string, hashedPassword []byte) error {
+	var DB = database.DB
+
+	tx, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() // Rollback if the transaction is not committed
+
+	if hashedPassword != nil {
+		_, err = tx.Exec("UPDATE users SET name = ?, email = ?, password = ? WHERE email = ?", newName, newEmail, hashedPassword, existingEmail)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = tx.Exec("UPDATE users SET name = ?, email = ? WHERE email = ?", newName, newEmail, existingEmail)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Registration data updated successfully")
+	return nil
 }

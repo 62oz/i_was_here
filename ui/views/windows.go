@@ -14,12 +14,14 @@ func ShowRegistrationForm(myApp fyne.App) {
 	nameEntry := widget.NewEntry()
 	emailEntry := widget.NewEntry()
 	passwordEntry := widget.NewPasswordEntry()
+	confirmPasswordEntry := widget.NewPasswordEntry()
 	registerButton := widget.NewButton("Register", func() {
 		name := nameEntry.Text
 		email := emailEntry.Text
 		password := passwordEntry.Text
+		confirmPassword := confirmPasswordEntry.Text
 
-		if err := auth.RegisterUser(name, email, password); err != nil {
+		if err := auth.RegisterUser(name, email, password, confirmPassword); err != nil {
 			ShowErrorDialog(myApp, "Registration failed. Please try again later.")
 			return
 		}
@@ -39,6 +41,8 @@ func ShowRegistrationForm(myApp fyne.App) {
 		emailEntry,
 		widget.NewLabel("Password:"),
 		passwordEntry,
+		widget.NewLabel("Confirm Password:"),
+		confirmPasswordEntry,
 		registerButton,
 		backButton,
 	)
