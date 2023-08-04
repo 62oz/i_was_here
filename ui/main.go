@@ -10,7 +10,7 @@ func main() {
 	myApp := app.New()
 
 	// Show the registration form
-	views.ShowRegistrationForm(myApp)
+	views.ShowInitialView(myApp)
 
 	myApp.Run()
 }

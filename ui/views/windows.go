@@ -27,6 +27,10 @@ func ShowRegistrationForm(myApp fyne.App) {
 		ShowSuccessDialog(myApp, "Registration successful! You can now log in.")
 	})
 
+	backButton := widget.NewButton("Back", func() {
+		ShowLoginOrRegister(myApp)
+	})
+
 	formContainer := container.NewVBox(
 		widget.NewLabel("Register a New Account"),
 		widget.NewLabel("Name:"),
@@ -36,6 +40,7 @@ func ShowRegistrationForm(myApp fyne.App) {
 		widget.NewLabel("Password:"),
 		passwordEntry,
 		registerButton,
+		backButton,
 	)
 
 	myWindow.SetContent(formContainer)
@@ -57,6 +62,11 @@ func ShowLoginForm(myApp fyne.App) {
 		}
 
 		ShowSuccessDialog(myApp, "Login successful!")
+		ShowUserDashboard(myApp)
+	})
+
+	backButton := widget.NewButton("Back", func() {
+		ShowLoginOrRegister(myApp)
 	})
 
 	formContainer := container.NewVBox(
@@ -66,8 +76,43 @@ func ShowLoginForm(myApp fyne.App) {
 		widget.NewLabel("Password:"),
 		passwordEntry,
 		loginButton,
+		backButton,
 	)
 
 	myWindow.SetContent(formContainer)
 	myWindow.Show()
+}
+
+func ShowLoginOrRegister(myApp fyne.App) {
+	myWindow := myApp.NewWindow("Login or Register")
+
+	loginButton := widget.NewButton("Login", func() {
+		ShowLoginForm(myApp)
+	})
+
+	registerButton := widget.NewButton("Register", func() {
+		ShowRegistrationForm(myApp)
+	})
+
+	myWindow.SetContent(container.NewVBox(
+		widget.NewLabel("Welcome to My App!"),
+		widget.NewLabel("Please login or register to continue."),
+		loginButton,
+		registerButton,
+	))
+	myWindow.Show()
+}
+
+func ShowInitialView(myApp fyne.App) {
+	if isAuthenticated() {
+		ShowUserDashboard(myApp)
+	} else {
+		ShowLoginForm(myApp)
+	}
+}
+
+func isAuthenticated() bool {
+	// Implement your authentication logic here
+	// Return true if the user is authenticated, otherwise false
+	return true
 }

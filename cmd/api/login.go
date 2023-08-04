@@ -1,6 +1,10 @@
 package api
 
+import database "i_was_here/cmd/database"
+
 func GetPasswordForEmail(email string) ([]byte, error) {
+	var DB = database.DB
+
 	row := DB.QueryRow("SELECT password FROM users WHERE email = ?", email)
 
 	var password []byte

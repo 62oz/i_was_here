@@ -2,15 +2,16 @@ package api
 
 import (
 	"fmt"
+	"log"
 
 	database "i_was_here/cmd/database"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var DB = database.DB
-
 func StoreRegistrationData(name, email string, hashedPassword []byte) error {
+	var DB = database.DB
+
 	tx, err := DB.Begin()
 	if err != nil {
 		return err
@@ -29,4 +30,30 @@ func StoreRegistrationData(name, email string, hashedPassword []byte) error {
 
 	fmt.Println("Registration data stored successfully")
 	return nil
+}
+
+func EmailExists(email string) bool {
+	var DB = database.DB
+
+	var count int
+	err := DB.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", email).Scan(&count)
+	if err != nil {
+		log.Println("Error checking email existence:", err)
+		return false
+	}
+
+	return count > 0
+}
+
+func NameExists(name string) bool {
+	var DB = database.DB
+
+	var count int
+	err := DB.QueryRow("SELECT COUNT(*) FROM users WHERE name = ?", name).Scan(&count)
+	if err != nil {
+		log.Println("Error checking name existence:", err)
+		return false
+	}
+
+	return count > 0
 }
