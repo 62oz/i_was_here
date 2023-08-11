@@ -3,7 +3,7 @@ require('dotenv').config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
-const { db, emailExists, hashPassword, checkPassword, getUserByEmail } = require('./database.js');
+const { db, emailExists, hashPassword, checkPassword, getUserByEmail, getLikesByPostIdAndUserId } = require('./database.js');
 const { getDistanceFromLatLonInKm } = require('./utils.js');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
@@ -138,6 +138,52 @@ app.post('/create-post', upload.single('image'), async (req, res) => {
       res.status(500).send({ message: "Internal server error." });
   }
 });
+
+app.delete('/posts/:postId', async (req, res) => {
+    console.log("Deleting post...")
+    const token = req.headers.authorization.split(' ')[1]
+    const decoded = jwt.verify(token, 'I_WAS_HERE');
+    const userId = decoded.userId;
+
+    const postId = req.params.postId;
+
+    db.run('DELETE FROM posts WHERE id = ? AND user_id = ?', [postId, userId], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: 'Post deleted successfully.', success: true });
+    });
+});
+
+app.post('/posts/:postId/like', async (req, res) => {
+    console.log("Liking/unliking post...")
+    const token = req.headers.authorization.split(' ')[1]
+    const decoded = jwt.verify(token, 'I_WAS_HERE');
+    const userId = decoded.userId;
+
+    const postId = req.params.postId;
+
+    // Check if user has already liked post
+    const rows = await getLikesByPostIdAndUserId(postId, userId);
+    if (rows.length > 0) {
+        // User has already liked post, so unlike it
+        db.run('DELETE FROM likes WHERE post_id = ? AND user_id = ?', [postId, userId], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ message: 'Post unliked successfully.', success: true });
+        });
+        return;
+    }
+
+    db.run('INSERT INTO likes (user_id, post_id) VALUES (?, ?)', [userId, postId], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: 'Post liked successfully.', success: true });
+    });
+});
+
 
 app.listen(3000, () => {
   console.log('Server started on http://localhost:3000');

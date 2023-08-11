@@ -16,10 +16,13 @@ const MainNavigator = () => (
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
     <Stack.Screen name="Dashboard" component={Dashboard} options={({ navigation }) => ({
-        title: 'I was here...',
+        headerTitle: () => (
+          <Button title="I was here" onPress={() => navigation.navigate('Dashboard')} />
+        ),
         headerRight: () => (
           <Button title="Profile" onPress={() => navigation.navigate('Profile')} />
-        )
+        ),
+        headerLeft: () => null,
       })}
     />
     <Stack.Screen name="Create" component={CreatePost} />

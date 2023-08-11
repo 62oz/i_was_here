@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, Button, Image, Text } from 'react-native';
 import { RNCamera } from 'react-native-camera';
 import { requestCameraPermission } from './permissions';
-import { getCurrentLocation } from './upload';
+import { getCurrentLocation } from './location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 

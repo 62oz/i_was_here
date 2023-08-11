@@ -8,11 +8,12 @@ let db = new sqlite3.Database('database.db', (err) => {
 });
 
 // Create table
-db.run('CREATE TABLE IF NOT EXISTS user (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, password TEXT)', (err) => {
+db.run('CREATE TABLE IF NOT EXISTS user (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, password TEXT, verified INTEGER DEFAULT 0)', (err) => {
   if (err) {
     throw err;
   }
 });
+
 
 // Create posts table
 db.run(`CREATE TABLE IF NOT EXISTS posts (
@@ -86,11 +87,21 @@ function saveImage(userID, fileURL, location) {
     });
 }
 
+function getLikesByPostIdAndUserId(postId, userId) {
+    return new Promise((resolve, reject) => {
+        db.all('SELECT * FROM likes WHERE post_id = ? AND user_id = ?', [postId, userId], (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+
 module.exports = {
   db,
   emailExists,
     hashPassword,
     checkPassword,
     getUserByEmail,
-    saveImage
+    saveImage,
+    getLikesByPostIdAndUserId
 };
