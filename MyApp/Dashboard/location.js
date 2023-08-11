@@ -1,5 +1,3 @@
-const { AWS_BUCKET_NAME } = require('react-native-dotenv');
-const s3 = require('./aws.js').s3;
 import Geolocation from '@react-native-community/geolocation';
 
 export const getCurrentLocation = () => {

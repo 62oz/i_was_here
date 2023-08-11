@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, Button, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import Geolocation from '@react-native-community/geolocation';
 import { requestLocationPermission } from './permissions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentLocation, calculateDistance } from './location';
+import PropTypes from 'prop-types';
 
 const ViewProfile = ({ navigation }) => {
   const [posts, setPosts] = useState([]);
@@ -243,6 +243,8 @@ const ViewProfile = ({ navigation }) => {
     },
   });
 
-
+  ViewProfile.propTypes = {
+    navigation: PropTypes.object.isRequired
+  };
 
 export default ViewProfile;

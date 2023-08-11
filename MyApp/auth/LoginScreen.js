@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { isValidEmail, isValidPassword } from '../utils/validations';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PropTypes from 'prop-types';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -61,7 +62,7 @@ const LoginScreen = ({ navigation }) => {
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text>Don't have an account? Register</Text>
+        <Text>Don&apos;t have an account? Register</Text>
       </TouchableOpacity>
     </View>
   );
@@ -94,5 +95,9 @@ const styles = StyleSheet.create({
     color: 'white',
   }
 });
+
+LoginScreen.propTypes = {
+  navigation: PropTypes.object.isRequired
+};
 
 export default LoginScreen;

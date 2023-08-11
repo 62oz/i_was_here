@@ -4,7 +4,7 @@ import { RNCamera } from 'react-native-camera';
 import { requestCameraPermission } from './permissions';
 import { getCurrentLocation } from './location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import PropTypes from 'prop-types';
 
 const CreatePost = ({ navigation }) => {
   const cameraRef = useRef(null);
@@ -46,6 +46,7 @@ const handleSubmit = async () => {
       formData.append('longitude', location.longitude.toString());
 
       console.log("Sending image...", formData)
+      console.log("Image uri:", imageUri)
 
       const postImage = await fetch('http://10.0.2.2:3000/create-post', {
           method: 'POST',
@@ -118,5 +119,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+CreatePost.propTypes = {
+  navigation: PropTypes.object.isRequired
+};
 
 export default CreatePost;

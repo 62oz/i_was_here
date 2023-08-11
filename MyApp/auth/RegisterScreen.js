@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { isValidEmail, isValidPassword } from '../utils/validations';
+import PropTypes from 'prop-types';
 
 const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -90,5 +91,9 @@ const styles = StyleSheet.create({
     color: 'white',
   }
 });
+
+RegisterScreen.propTypes = {
+  navigation: PropTypes.object.isRequired
+};
 
 export default RegisterScreen;
