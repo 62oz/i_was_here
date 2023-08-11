@@ -71,6 +71,20 @@ app.post('/posts', (req, res) => {
     });
 });
 
+app.get('/my-posts', async (req, res) => {
+  console.log("Getting my posts...")
+    const token = req.headers.authorization.split(' ')[1]
+    const decoded = jwt.verify(token, 'I_WAS_HERE');
+    const userId = decoded.userId;
+
+    db.all('SELECT * FROM posts WHERE user_id = ?', [userId], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ posts: rows });
+    });
+});
+
 app.post('/create-post', upload.single('image'), async (req, res) => {
   console.log("Creating post...")
   try {

@@ -5,34 +5,33 @@ import { requestLocationPermission } from './permissions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentLocation } from './upload';
 
-const Dashboard = ({navigation}) => {
+const ViewProfile = ({navigation}) => {
   const [posts, setPosts] = useState([]);
   const [hasPermission, setHasPermission] = useState(null);  // State to track location permission
   const [location, setLocation] = useState(null);
   const [token, setToken] = useState(null);
 
-  const fetchNearbyPosts = async (latitude, longitude) => {
-    try {
-      if (!token) {
-        const jwt = await AsyncStorage.getItem('userToken');
+  const fetchMyPosts = async () => {
+    if (!token) {
+      const jwt = await AsyncStorage.getItem('userToken');
         setToken(jwt);
         if (!token) {
-          navigation.navigate('Auth', { screen: 'Login' });
+          navigation.navigate('Login');
         }
-      }
-      const response = await fetch('http://10.0.2.2:3000/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        authorization: 'Bearer ' + token,
-        body: JSON.stringify({ latitude, longitude }),
+    }
+    try {
+      const response = await fetch('http://10.0.2.2:3000/my-posts', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json',
+        'authorization': 'Bearer ' + token, },
       });
-
       const data = await response.json();
       setPosts(data.posts);
     } catch (error) {
       console.error("Error fetching posts:", error);
     }
   };
+
 
   // Check for JWT token
 useEffect(() => {
@@ -82,7 +81,7 @@ useEffect(() => {
 // Fetch nearby posts whenever location changes
 useEffect(() => {
   if (location) {
-      fetchNearbyPosts(location.latitude, location.longitude);
+      fetchMyPosts(location.latitude, location.longitude);
   }
 }, [location]);
 
@@ -107,23 +106,33 @@ useEffect(() => {
     );
   }
 
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    // Calculate distance between two latitude and longitude points using Haversine formula
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    return distance.toFixed(2); // Return distance rounded to 2 decimal places
+};
 
   return (
     <View style={styles.container}>
-      <Text>Welcome to the Dashboard!</Text>
-      <Button title="Add Post" onPress={() => navigation.navigate('Create')} />
-      {posts.map(post => (
-        <View key={post.id} style={styles.postContainer}>
-{/*             <Text>{post.title}</Text>*/}
-        {post.image_url &&
-          <Image
-            source={{ uri: post.image_url }}
-            style={styles.postImage}
-            resizeMode="cover"
-          />
-        }
-            {/* Add other post details like description, etc. */}
-        </View>
+        <Text>Profile</Text>
+        {posts.map((post) => (
+            <View key={post.id} style={styles.postContainer}>
+                <Image source={{ uri: post.image_url }} style={styles.postImage} />
+                <Text>{post.title}</Text>
+                <Text>{post.description}</Text>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text>{post.location}</Text>
+                    <Text>{calculateDistance(location.latitude, location.longitude, post.latitude, post.longitude)} km</Text>
+                </View>
+            </View>
         ))}
     </View>
   );
@@ -152,4 +161,4 @@ const styles = StyleSheet.create({
     },
   });
 
-export default Dashboard;
+export default ViewProfile;
