@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, Button, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Image, Button, TouchableOpacity, Dimensions } from 'react-native';
+import { State, PanGestureHandler } from 'react-native-gesture-handler';
 import Geolocation from '@react-native-community/geolocation';
 import { requestLocationPermission } from './permissions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentLocation, calculateDistance } from './location';
+import Animated from 'react-native-reanimated';
 
 const Dashboard = ({navigation}) => {
   const [posts, setPosts] = useState([]);
@@ -11,6 +13,33 @@ const Dashboard = ({navigation}) => {
   const [location, setLocation] = useState(null);
   const [token, setToken] = useState(null);
   const [lastPressPost, setLastPressPost] = useState(0);
+  const scrollViewRefVertical = useRef(null);
+  const scrollViewRefHorizontal = useRef(null);
+  const translate = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const accumulatedTranslate = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+
+  const onGestureEvent = Animated.event(
+    [
+      {
+        nativeEvent: {
+          translationX: translate.x,
+          translationY: translate.y,
+        },
+      },
+    ],
+    { useNativeDriver: false }
+  );
+
+  const onHandlerStateChange = event => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      accumulatedTranslate.x.setValue(accumulatedTranslate.x._value + translate.x._value);
+      accumulatedTranslate.y.setValue(accumulatedTranslate.y._value + translate.y._value);
+      translate.setValue({ x: 0, y: 0 }); // Reset the transient values to zero
+    }
+  };
+
+
+
 
   const fetchNearbyPosts = async (latitude, longitude) => {
     try {
@@ -18,7 +47,7 @@ const Dashboard = ({navigation}) => {
         const jwt = await AsyncStorage.getItem('userToken');
         setToken(jwt);
         if (!token) {
-          navigation.navigate('Auth', { screen: 'Login' });
+          navigation.navigate('Login');
         }
       }
       const response = await fetch('http://10.0.2.2:3000/posts', {
@@ -48,6 +77,7 @@ const Dashboard = ({navigation}) => {
 
      // sort by timestamp most recent first
       data.posts.sort((a, b) => b.created_at - a.created_at);
+      console.log("raw posts", data.posts)
       setPosts(data.posts);
     } catch (error) {
       console.error("Error fetching posts:", error);
@@ -156,69 +186,156 @@ useEffect(() => {
     }
   };
 
+// Sort posts by distance
+const sortedPosts = [...posts].sort((a, b) => a.distance - b.distance);
 
+// Calculate circle sizes
+const maxLikes = Math.max(...sortedPosts.map((post) => post.likes));
+const circleSizes = sortedPosts.map((post) => {
+    const size = 30 + (post.likes / maxLikes) * 50;
+    return !isNaN(size) && size > 0 ? size : 100; // Fallback size of 100 if the calculated size is invalid
+});
 
-  return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {posts.map((post) => (
-          <TouchableOpacity key={post.id} style={styles.postContainer} onPress={handlePressPost(post.id)}>
-            <Image source={{ uri: post.image_url }} style={styles.postImage} />
-            <Text>{post.title}</Text>
-            <Text>{post.description}</Text>
+// Calculate circle positions
+const generateCirclePosition = (avoidPositions) => {
+    let maxTries = 1000;
+    let validPosition = false;
+    let circlePosition;
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text>{post.date}</Text>
-              <Text>
-                {calculateDistance(location.latitude, location.longitude, post.latitude, post.longitude)} km
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+    if (avoidPositions.length === 0) {
+      return {
+          top: 1000,
+          left: 1000
+      };
+  }
 
-      <View style={styles.overlay}>
-        <Button title="Create" onPress={() => navigation.navigate('Create')} />
-      </View>
-    </View>
-  );
+    while (maxTries > 0 && !validPosition) {
+        circlePosition = {
+            top: Math.random() * 2000 - 1000,
+            left: Math.random() * 2000 - 1000,
+        };
+        validPosition = true;
+
+        for (let avoidPos of avoidPositions) {
+            if (isColliding(circlePosition, avoidPos, circleSizes[circleSizes.length - 1])) {
+                validPosition = false;
+                break;
+            }
+        }
+        maxTries--;
+    }
+    return circlePosition;
 };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    scrollContainer: {
-      flexGrow: 1,
-      paddingBottom: 60,
-      paddingTop: 16,
-    },
-    postContainer: {
-      width: '100%',
-      aspectRatio: 1,
-      padding: 10,
-      marginBottom: 16, // Adjust margin as needed
-      borderRadius: 5,
-      borderColor: '#ddd',
-      borderWidth: 1,
-      backgroundColor: '#fff',
-    },
-    postImage: {
-      width: '100%',
-      height: 200,
-      borderRadius: 5,
-    },
-    overlay: {
-      position: 'absolute',
-      bottom: 0,
-      width: '100%',
-      padding: 16,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-  });
+const circlePositions = sortedPosts.map((_, index, arr) => {
+    const position = generateCirclePosition(arr.slice(0, index));
+    return {
+        top: !isNaN(position.top) ? position.top : 0,  // Fallback to 0 if invalid
+        left: !isNaN(position.left) ? position.left : 0 // Fallback to 0 if invalid
+    };
+});
 
+// Logging to ensure consistency and inspect values
+console.log("Circle Sizes:", circleSizes);
+console.log("Circle Positions:", circlePositions);
+console.log("Number of sortedPosts:", sortedPosts.length);
+
+
+return (
+  <View style={styles.container}>
+    <PanGestureHandler
+      maxPointers={1}
+      minDist={10}
+      avgTouches={true}
+      waitFor={[scrollViewRefHorizontal]}
+      simultaneousHandlers={[scrollViewRefHorizontal]}
+      activeOffsetX={[-20, 20]}
+      activeOffsetY={[-20, 20]}
+      failOffsetX={[-20, 20]}
+      failOffsetY={[-20, 20]}
+      onGestureEvent={onGestureEvent}
+      onHandlerStateChange={onHandlerStateChange}
+      style={{ flex: 1 }}
+    >
+      <View style={styles.panContainer}>
+        <View style={styles.postContainer}>
+          {sortedPosts.map((post, index) => (
+            <TouchableOpacity
+              key={post.id}
+              style={{
+                ...styles.circle,
+                backgroundColor: 'red',
+                width: circleSizes[index] || 100,
+                height: circleSizes[index] || 100,
+                top: circlePositions[index]?.top || 0,
+                left: circlePositions[index]?.left || 0,
+              }}
+              onPress={() => handlePressPost(post.id)}
+            >
+              <Image source={{ uri: post.image_url }} style={styles.postImage} />
+              <Text>{post.title}</Text>
+              <Text>{post.description}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text>{post.date}</Text>
+                <Text>
+                  {calculateDistance(
+                    location.latitude,
+                    location.longitude,
+                    post.latitude,
+                    post.longitude
+                  )}{' '}
+                  km
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </PanGestureHandler>
+
+    <View style={styles.overlay}>
+      <Button title="Create" onPress={() => navigation.navigate('Create')} />
+    </View>
+  </View>
+);
+
+};
+
+function isColliding(position1, position2, radius) {
+const dx = position1.left - position2.left;
+const dy = position1.top - position2.top;
+const distance = Math.sqrt(dx * dx + dy * dy);
+return distance < radius * 2;
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+  },
+  verticalContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  circle: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'lightblue',
+    borderRadius: 999,
+  },
+  overlay: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 
 export default Dashboard;

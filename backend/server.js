@@ -3,7 +3,7 @@ require('dotenv').config();
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
-const { db, emailExists, hashPassword, checkPassword, getUserByEmail, getLikesByPostIdAndUserId } = require('./database.js');
+const { db, emailExists, hashPassword, checkPassword, getUserByEmail, getLikesByPostIdAndUserId, getLikesByPost } = require('./database.js');
 const { getDistanceFromLatLonInKm } = require('./utils.js');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
@@ -67,7 +67,15 @@ app.post('/posts', (req, res) => {
             return distance <= 0.1;
         }
         );
-        res.json({ posts: filteredRows });
+        // Add likes property to each post with number of likes
+        const postsWithLikes = filteredRows.map(async row => {
+            const likes = await getLikesByPost(row.id);
+            return { ...row, likes: likes.length };
+        });
+
+        Promise.all(postsWithLikes).then(posts => {
+            res.json({ posts: posts });
+        });
     });
 });
 

@@ -96,6 +96,15 @@ function getLikesByPostIdAndUserId(postId, userId) {
     });
 }
 
+function getLikesByPost(postId) {
+    return new Promise((resolve, reject) => {
+        db.all('SELECT * FROM likes WHERE post_id = ?', [postId], (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+
 module.exports = {
   db,
   emailExists,
@@ -103,5 +112,6 @@ module.exports = {
     checkPassword,
     getUserByEmail,
     saveImage,
-    getLikesByPostIdAndUserId
+    getLikesByPostIdAndUserId,
+    getLikesByPost
 };
